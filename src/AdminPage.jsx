@@ -130,7 +130,15 @@ const AdminPage = () => {
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/${sector.endpoint}`)
       .then(res => res.json())
-      .then(data => setRegistros(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setRegistros(data);
+        } else if (Array.isArray(data.data)) {
+          setRegistros(data.data);
+        } else {
+          setRegistros([]);
+        }
+      })
       .catch(() => setRegistros([]));
     setFiltros(getFiltrosIniciales(sector));
   }, [sectorKey]);
@@ -140,11 +148,13 @@ const AdminPage = () => {
   };
 
   // Filtrado dinámico
-  const registrosFiltrados = registros.filter(r =>
-    sector.filtros.every(f =>
-      !filtros[f] || (r[f] && r[f].toString().toLowerCase().includes(filtros[f].toLowerCase()))
-    )
-  );
+  const registrosFiltrados = Array.isArray(registros)
+    ? registros.filter(r =>
+        sector.filtros.every(f =>
+          !filtros[f] || (r[f] && r[f].toString().toLowerCase().includes(filtros[f].toLowerCase()))
+        )
+      )
+    : [];
 
   return (
     <>
