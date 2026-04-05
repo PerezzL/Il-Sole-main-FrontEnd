@@ -15,24 +15,25 @@ import {
   AlertDialogBody,
   AlertDialogFooter,
   Box,
+  Tooltip,
 } from '@chakra-ui/react';
 import { DeleteIcon } from '@chakra-ui/icons';
 
-const UserTable = ({ users, onDelete }) => {
+const UserTable = ({ users, onDelete, currentUser }) => {
   const [isOpen, setIsOpen] = useState(false);  // Estado para controlar si el popup está abierto
   const [userToDelete, setUserToDelete] = useState(null);  // Usuario seleccionado para eliminar
   const cancelRef = useRef();  // Referencia al botón "Cancelar"
 
   const onDeleteConfirm = () => {
     if (userToDelete) {
-      onDelete(userToDelete);  // Llamar a la función onDelete pasada como prop
+      onDelete(userToDelete.id);  // Llamar a la función onDelete pasada como prop
     }
     setUserToDelete(null);  // Reiniciar el usuario a eliminar
     setIsOpen(false);  // Cerrar el popup
   };
 
-  const handleDeleteClick = (id) => {
-    setUserToDelete(id);  // Guardar el usuario a eliminar
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);  // Guardar el usuario completo (no solo el ID)
     setIsOpen(true);  // Abrir el popup de confirmación
   };
 
@@ -43,31 +44,47 @@ const UserTable = ({ users, onDelete }) => {
           <Thead>
             <Tr>
               <Th>ID</Th>
-              <Th>Nombre</Th>
-              <Th>Apellido</Th>
+              <Th>Nombre de Usuario</Th>
               <Th>Email</Th>
-              <Th>Role</Th>
+              <Th>Rol</Th>
+              <Th>Fecha de Creación</Th>
               <Th>Eliminar</Th>
             </Tr>
           </Thead>
           <Tbody>
-            {users.map((user) => (
-              <Tr key={user.id}>
-                <Td>{user.id}</Td>
-                <Td>{user.name}</Td>
-                <Td>{user.lastName}</Td>
-                <Td>{user.email}</Td>
-                <Td>{user.role}</Td>
-                <Td>
-                  <IconButton
-                    aria-label="Eliminar usuario"
-                    icon={<DeleteIcon />}
-                    colorScheme="red"
-                    onClick={() => handleDeleteClick(user.id)}
-                  />
-                </Td>
-              </Tr>
-            ))}
+            {users.map((user) => {
+              const isCurrentUser = currentUser && user.id === currentUser.id;
+              
+              return (
+                <Tr key={user.id}>
+                  <Td>{user.id}</Td>
+                  <Td>{user.username}</Td>
+                  <Td>{user.email}</Td>
+                  <Td>{user.role === 'admin' ? 'Administrador' : 'Usuario'}</Td>
+                  <Td>{new Date(user.created_at).toLocaleDateString()}</Td>
+                  <Td>
+                    {isCurrentUser ? (
+                      <Tooltip label="No puedes eliminar tu propia cuenta" hasArrow>
+                        <IconButton
+                          aria-label="Eliminar usuario"
+                          icon={<DeleteIcon />}
+                          colorScheme="red"
+                          isDisabled={true}
+                          opacity={0.4}
+                        />
+                      </Tooltip>
+                    ) : (
+                      <IconButton
+                        aria-label="Eliminar usuario"
+                        icon={<DeleteIcon />}
+                        colorScheme="red"
+                        onClick={() => handleDeleteClick(user)}
+                      />
+                    )}
+                  </Td>
+                </Tr>
+              );
+            })}
           </Tbody>
         </Table>
       </Box>
@@ -84,7 +101,7 @@ const UserTable = ({ users, onDelete }) => {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              ¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.
+              ¿Estás seguro de que quieres eliminar a <strong>{userToDelete?.username}</strong>? Esta acción no se puede deshacer.
             </AlertDialogBody>
 
             <AlertDialogFooter>

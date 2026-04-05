@@ -1,105 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Container, FormControl, FormLabel, Input, Select, Heading, VStack, useToast, Spinner, Text, HStack } from '@chakra-ui/react';
 import backgroundImg from '../images/background.png';
-import { createControlPesado, getProducts, getMateriasPrimasByProducto } from '../config/api';
+import { createSemielaborado, getMateriasPrimas } from '../config/api';
 
-const ControlPesado = () => {
+const Semielaborado = () => {
   const [formData, setFormData] = useState({
-    producto: '',
-    materiaPrima: '',
+    semielaborado: '',
+    ingrediente: '',
     loteMateriaPrima: '',
+    lote: '',
     peso: '',
     fecha: '',
     observaciones: '',
   });
 
-  const [productos, setProductos] = useState([]);
   const [materiasPrimas, setMateriasPrimas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingMaterias, setLoadingMaterias] = useState(false);
 
   const toast = useToast();
 
-  // Cargar productos
+  // Cargar materias primas disponibles
   useEffect(() => {
-    const fetchProductos = async () => {
+    const fetchMateriasPrimas = async () => {
       try {
-        setLoadingProducts(true);
-        const data = await getProducts();        
-        // Filtrar productos únicos por nombre
-        const productosUnicos = data.filter((producto, index, self) => 
-          index === self.findIndex(p => p.name === producto.name)
-        );
+        setLoadingMaterias(true);
+        const data = await getMateriasPrimas();        
+        // Filtrar solo materias primas activas
+        const materiasActivas = data.filter(mp => mp.activo !== false);
         
-        setProductos(productosUnicos);
+        setMateriasPrimas(materiasActivas);
       } catch (error) {        toast({
-          title: 'Error al cargar productos',
+          title: 'Error al cargar materias primas',
           description: error.message,
           status: 'error',
           duration: 3000,
           isClosable: true,
         });
       } finally {
-        setLoadingProducts(false);
+        setLoadingMaterias(false);
+        setLoading(false);
       }
     };
 
-    fetchProductos();
+    fetchMateriasPrimas();
   }, [toast]);
-
-  // Cargar materias primas del producto seleccionado
-  const fetchMateriasPrimasByProducto = async (productoNombre) => {
-    try {
-      setLoadingMaterias(true);
-      setMateriasPrimas([]); // Limpiar materias primas anteriores
-      
-      if (!productoNombre) {
-        setLoadingMaterias(false);
-        return;
-      }
-
-      // Encontrar el producto por nombre para obtener su ID
-      const producto = productos.find(p => p.name === productoNombre);
-      if (!producto) {        setLoadingMaterias(false);
-        return;
-      }
-
-      const data = await getMateriasPrimasByProducto(producto.id);      
-      setMateriasPrimas(data);
-    } catch (error) {      toast({
-        title: 'Error al cargar materias primas',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setLoadingMaterias(false);
-    }
-  };
-
-  // Actualizar loading general
-  useEffect(() => {
-    setLoading(loadingProducts || loadingMaterias);
-  }, [loadingProducts, loadingMaterias]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    
-    // Si se cambia el producto, cargar sus materias primas
-    if (name === 'producto') {
-      // Limpiar materia prima seleccionada cuando cambia el producto
-      setFormData(prev => ({ ...prev, [name]: value, materiaPrima: "" }));
-      fetchMateriasPrimasByProducto(value);
-    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createControlPesado(formData);
+      await createSemielaborado(formData);
       toast({
         title: 'Registro guardado correctamente',
         status: 'success',
@@ -108,15 +63,14 @@ const ControlPesado = () => {
         position: 'top',
       });
       setFormData({
-        producto: '',
-        materiaPrima: '',
+        semielaborado: '',
+        ingrediente: '',
         loteMateriaPrima: '',
+        lote: '',
         peso: '',
         fecha: '',
         observaciones: '',
       });
-      // Limpiar también las materias primas
-      setMateriasPrimas([]);
     } catch (error) {
       toast({
         title: 'Error al guardar',
@@ -134,8 +88,11 @@ const ControlPesado = () => {
       <Container maxW={{ base: '100%', md: '800px' }} p={{ base: 2, md: 10 }}>
         <Box bg="orange.200" p={{ base: 4, md: 8 }} borderRadius="md" boxShadow="lg" borderColor="orange.600" borderWidth="1px" position="relative" mx="auto">
           <Heading mb={6} textAlign="center" color="orange.800" fontSize={{ base: '2xl', md: '3xl' }}>
-            Control de Pesado
+            Semielaborados
           </Heading>
+          <Text mb={4} textAlign="center" color="orange.700" fontSize="sm">
+            Pesado de ingredientes para semielaborados
+          </Text>
           
           {/* Spinner de carga como overlay */}
           {loading && (
@@ -161,44 +118,39 @@ const ControlPesado = () => {
           
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <VStack spacing={4} w="full">
-              <FormControl id="producto" isRequired>
-                <FormLabel>Producto</FormLabel>
-                <Select
-                  name="producto"
-                  value={formData.producto}
+              <FormControl id="semielaborado" isRequired>
+                <FormLabel>Semielaborado</FormLabel>
+                <Input
+                  type="text"
+                  name="semielaborado"
+                  value={formData.semielaborado}
                   onChange={handleChange}
+                  placeholder="Ej: Masa para pizza, Queso rallado, etc."
                   bg="white"
                   w="full"
                   isDisabled={loading}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {productos.map((producto) => (
-                    <option key={producto.id} value={producto.name}>
-                      {producto.name}
-                    </option>
-                  ))}
-                </Select>
+                />
               </FormControl>
               
-              <FormControl id="materiaPrima" isRequired>
-                <FormLabel>Materia Prima</FormLabel>
+              <FormControl id="ingrediente" isRequired>
+                <FormLabel>Ingrediente / Materia Prima</FormLabel>
                 <Select
-                  name="materiaPrima"
-                  value={formData.materiaPrima}
+                  name="ingrediente"
+                  value={formData.ingrediente}
                   onChange={handleChange}
-                  placeholder={formData.producto ? "Selecciona materia prima" : "Primero seleccione un producto"}
+                  placeholder="Selecciona un ingrediente"
                   bg="white"
                   w="full"
-                  isDisabled={!formData.producto || loading}
+                  isDisabled={loading || loadingMaterias}
                 >
                   {loadingMaterias ? (
-                    <option value="">Cargando materias primas...</option>
-                  ) : materiasPrimas.length === 0 && formData.producto ? (
-                    <option value="">No hay materias primas para este producto</option>
+                    <option value="">Cargando ingredientes...</option>
+                  ) : materiasPrimas.length === 0 ? (
+                    <option value="">No hay ingredientes disponibles</option>
                   ) : (
                     materiasPrimas.map((materia) => (
-                      <option key={materia.materia_prima_id} value={materia.materia_prima_nombre}>
-                        {materia.materia_prima_nombre}
+                      <option key={materia.id} value={materia.nombre}>
+                        {materia.nombre}
                       </option>
                     ))
                   )}
@@ -212,6 +164,21 @@ const ControlPesado = () => {
                   name="loteMateriaPrima"
                   value={formData.loteMateriaPrima}
                   onChange={handleChange}
+                  placeholder="Lote de la materia prima utilizada"
+                  bg="white"
+                  w="full"
+                  isDisabled={loading}
+                />
+              </FormControl>
+              
+              <FormControl id="lote">
+                <FormLabel>Lote del Semielaborado</FormLabel>
+                <Input
+                  type="text"
+                  name="lote"
+                  value={formData.lote}
+                  onChange={handleChange}
+                  placeholder="Lote generado del semielaborado"
                   bg="white"
                   w="full"
                   isDisabled={loading}
@@ -276,4 +243,4 @@ const ControlPesado = () => {
   );
 };
 
-export default ControlPesado;
+export default Semielaborado;

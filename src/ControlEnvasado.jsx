@@ -1,8 +1,9 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import backgroundImg from './images/background.png';
+import { createEnvasado, getProducts } from './config/api';
 import {
     Box,
     Button,
@@ -14,6 +15,9 @@ import {
     Container,
     Textarea,
     useToast,
+    Select,
+    Spinner,
+    Text,
   } from "@chakra-ui/react";
 
 const ControlEnvasado = () => {
@@ -23,10 +27,42 @@ const ControlEnvasado = () => {
         producto: "",
         cantEnvases: "",
         cantDescarte: "",
+        fechaIngresoPackaging: "",
+        fechaElaboracion: "",
         observaciones: "",
     });
 
+    const [productos, setProductos] = useState([]);
+    const [loading, setLoading] = useState(true);
+
     const toast = useToast();
+
+    // Cargar productos
+    useEffect(() => {
+        const fetchProductos = async () => {
+            try {
+                setLoading(true);
+                const data = await getProducts();                
+                // Filtrar productos únicos por nombre
+                const productosUnicos = data.filter((producto, index, self) => 
+                    index === self.findIndex(p => p.name === producto.name)
+                );
+                
+                setProductos(productosUnicos);
+            } catch (error) {                toast({
+                    title: 'Error al cargar productos',
+                    description: error.message,
+                    status: 'error',
+                    duration: 3000,
+                    isClosable: true,
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProductos();
+    }, [toast]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -36,39 +72,28 @@ const ControlEnvasado = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/envasado`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+            await createEnvasado(formData);
+            toast({
+              title: 'Registro guardado correctamente',
+              status: 'success',
+              duration: 3000,
+              isClosable: true,
+              position: 'top',
             });
-            if (response.ok) {
-                toast({
-                  title: 'Registro guardado correctamente',
-                  status: 'success',
-                  duration: 3000,
-                  isClosable: true,
-                  position: 'top',
-                });
-                setFormData({
-                    loteProd: "",
-                    loteEnvasado: "",
-                    producto: "",
-                    cantEnvases: "",
-                    cantDescarte: "",
-                    observaciones: "",
-                });
-            } else {
-                toast({
-                  title: 'Error al guardar',
-                  status: 'error',
-                  duration: 3000,
-                  isClosable: true,
-                  position: 'top',
-                });
-            }
+            setFormData({
+                loteProd: "",
+                loteEnvasado: "",
+                producto: "",
+                cantEnvases: "",
+                cantDescarte: "",
+                fechaIngresoPackaging: "",
+                fechaElaboracion: "",
+                observaciones: "",
+            });
         } catch (error) {
             toast({
-              title: 'Error de conexión',
+              title: 'Error al guardar',
+              description: error.message,
               status: 'error',
               duration: 3000,
               isClosable: true,
@@ -77,10 +102,10 @@ const ControlEnvasado = () => {
         }
     };
   return (
-    <>
+    <Box minH="100vh" display="flex" flexDirection="column">
     <Header />
-      <Box backgroundImage={`url(${backgroundImg})`}>
-          <Container maxW={{ base: '100%', md: 'container.md' }} p={{ base: 2, md: 10 }}>
+      <Box backgroundImage={`url(${backgroundImg})`} flex="1" display="flex" alignItems="center">
+          <Container maxW={{ base: '100%', md: '800px' }} p={{ base: 2, md: 10 }}>
           <Box
               bg="orange.200"
               p={{ base: 4, md: 8 }}
@@ -88,16 +113,41 @@ const ControlEnvasado = () => {
               boxShadow="lg"
               borderColor="orange.600"
               borderWidth="1px"
+              mx="auto"
+              position="relative"
           >
               <Heading mb={6} textAlign="center" color="orange.800" fontSize={{ base: '2xl', md: '3xl' }}>
               Registro de Datos - Envasado
               </Heading>
+              
+              {/* Spinner de carga como overlay */}
+              {loading && (
+                  <Box
+                      position="absolute"
+                      top="0"
+                      left="0"
+                      right="0"
+                      bottom="0"
+                      bg="rgba(255, 255, 255, 0.8)"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      borderRadius="md"
+                      zIndex="10"
+                  >
+                      <VStack spacing={3}>
+                          <Spinner size="lg" color="orange.500" thickness="4px" />
+                          <Text color="orange.700" fontWeight="medium">Cargando datos...</Text>
+                      </VStack>
+                  </Box>
+              )}
+              
               <form onSubmit={handleSubmit} style={{ width: '100%' }}>
                   <VStack spacing={4} w="full">
                   <FormControl id="loteProd">
                       <FormLabel>Lote de Producción</FormLabel>
                       <Input
-                          type="number"
+                          type="text"
                           name="loteProd"
                           value={formData.loteProd}
                           onChange={handleChange}
@@ -108,9 +158,9 @@ const ControlEnvasado = () => {
                     <FormControl id="loteEnvasado">
                       <FormLabel>Lote de Envasado</FormLabel>
                       <Input
-                          type="number"
-                          name="loteDescarte"
-                          value={formData.loteEnavasdo}
+                          type="text"
+                          name="loteEnvasado"
+                          value={formData.loteEnvasado}
                           onChange={handleChange}
                           bg="white"
                           w="full"
@@ -118,14 +168,21 @@ const ControlEnvasado = () => {
                       </FormControl>
                       <FormControl id="producto">
                       <FormLabel>Producto</FormLabel>
-                      <Input
-                          type="text"
+                      <Select
                           name="producto"
                           value={formData.producto}
                           onChange={handleChange}
                           bg="white"
                           w="full"
-                      />
+                          isDisabled={loading}
+                      >
+                          <option value="">Selecciona un producto</option>
+                          {productos.map((producto) => (
+                              <option key={producto.id} value={producto.name}>
+                                  {producto.name}
+                              </option>
+                          ))}
+                      </Select>
                       </FormControl>
                       <FormControl id="cantEnvases">
                       <FormLabel>Cantidad envases unitarios</FormLabel>
@@ -149,8 +206,30 @@ const ControlEnvasado = () => {
                           w="full"
                       />
                       </FormControl>
+                      <FormControl id="fechaIngresoPackaging">
+                      <FormLabel>Fecha de Ingreso del Packaging</FormLabel>
+                      <Input
+                          type="date"
+                          name="fechaIngresoPackaging"
+                          value={formData.fechaIngresoPackaging}
+                          onChange={handleChange}
+                          bg="white"
+                          w="full"
+                      />
+                      </FormControl>
+                      <FormControl id="fechaElaboracion">
+                      <FormLabel>Fecha de Elaboración</FormLabel>
+                      <Input
+                          type="date"
+                          name="fechaElaboracion"
+                          value={formData.fechaElaboracion}
+                          onChange={handleChange}
+                          bg="white"
+                          w="full"
+                      />
+                      </FormControl>
                       <FormControl id="observaciones">
-                        <FormLabel>Observaciones (Indicar Fecha de produccion)</FormLabel>
+                        <FormLabel>Observaciones</FormLabel>
                         <Textarea
                             name="observaciones"
                             value={formData.observaciones}
@@ -168,7 +247,7 @@ const ControlEnvasado = () => {
           </Container>
       </Box>
     <Footer />
-  </>
+  </Box>
   )
 }
 

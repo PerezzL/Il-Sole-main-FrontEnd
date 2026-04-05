@@ -2,18 +2,18 @@ import React from 'react';
 import { Box } from '@chakra-ui/react';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import ControlPesado from './components/ControlPesado';
+import Semielaborado from './components/Semielaborado';
 
-const FormPesado = () => {
+const FormSemielaborado = () => {
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
       <Header />
 
-        <ControlPesado />
+        <Semielaborado />
 
       <Footer />
     </Box>
   )
 }
 
-export default FormPesado
+export default FormSemielaborado

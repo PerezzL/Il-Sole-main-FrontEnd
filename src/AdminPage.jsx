@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Heading, Button, Collapse, Tabs, TabList, Tab, TabPanels, TabPanel } from '@chakra-ui/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, Heading, Button, Collapse, Tabs, TabList, Tab, TabPanels, TabPanel, useToast, Select, VStack, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, IconButton } from '@chakra-ui/react';
+import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import UserTable from './components/UserTable';
 import UserForm from './components/UserForm';
+import RegistrosTable from './components/RegistrosTable';
+import ProductoMateriaPrimaForm from './components/ProductoMateriaPrimaForm';
+import ProductoMateriaPrimaTable from './components/ProductoMateriaPrimaTable';
+import { useAuth } from './context/AuthContext';
 
-const initialUsers = [
-  { id: 1, name: 'Lucas', email: 'lucas@example.com', role: 'admin', password: '' },
-  { id: 2, name: 'Juan', email: 'juan@example.com', role: 'user', password: '' },
-];
+import { getUsers, createUser, deleteUser } from './config/api';
 
 const sectores = [
   {
@@ -17,20 +19,40 @@ const sectores = [
     endpoint: 'recepcion',
     columns: [
       { key: 'id', label: 'ID' },
-      { key: 'materiaPrima', label: 'Materia Prima' },
+      { key: 'materiaprima', label: 'Materia Prima' },
       { key: 'control1', label: 'Control Transporte' },
       { key: 'control2', label: 'Control Envase' },
       { key: 'control3', label: 'Control Rotulado' },
       { key: 'marca', label: 'Marca' },
       { key: 'proveedor', label: 'Proveedor' },
       { key: 'cant', label: 'Cantidad' },
-      { key: 'nroRemito', label: 'Nro Remito' },
+      { key: 'nroremito', label: 'Nro Remito' },
       { key: 'temp', label: 'Temperatura' },
-      { key: 'fechaElaborado', label: 'Fecha Elaborado' },
-      { key: 'fechaVTO', label: 'Fecha Vto.' },
+      { key: 'fechaelaborado', label: 'Fecha Elaborado' },
+      { key: 'fechavto', label: 'Fecha Vto.' },
       { key: 'lote', label: 'Lote' },
+      { key: 'responsable', label: 'Responsable' },
+      { key: 'created_at', label: 'Fecha Creación' },
     ],
-    filtros: ['lote', 'materiaPrima', 'proveedor'],
+    filtros: ['lote', 'materiaprima', 'proveedor', 'nroremito', 'responsable'],
+  },
+  {
+    key: 'semielaborado',
+    label: 'Semielaborados',
+    endpoint: 'semielaborado',
+    columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'semielaborado', label: 'Semielaborado' },
+      { key: 'ingrediente', label: 'Ingrediente' },
+      { key: 'lotemateriaprima', label: 'Lote Materia Prima' },
+      { key: 'lote', label: 'Lote' },
+      { key: 'peso', label: 'Peso' },
+      { key: 'fecha', label: 'Fecha' },
+      { key: 'observaciones', label: 'Observaciones' },
+      { key: 'responsable', label: 'Responsable' },
+      { key: 'created_at', label: 'Fecha Creación' },
+    ],
+    filtros: ['semielaborado', 'ingrediente', 'lote', 'fecha', 'responsable'],
   },
   {
     key: 'production',
@@ -39,15 +61,17 @@ const sectores = [
     columns: [
       { key: 'id', label: 'ID' },
       { key: 'producto', label: 'Producto' },
-      { key: 'materiaPrima', label: 'Materia Prima' },
+      { key: 'materiaprima', label: 'Materia Prima' },
       { key: 'lote', label: 'Lote' },
-      { key: 'planProduccion', label: 'Plan Producción' },
+      { key: 'planproduccion', label: 'Plan Producción' },
       { key: 'produccion', label: 'Producción' },
-      { key: 'pesoDescarte', label: 'Peso Descarte' },
+      { key: 'pesodescarte', label: 'Peso Descarte' },
       { key: 'observaciones', label: 'Observaciones' },
       { key: 'comentarios', label: 'Comentarios' },
+      { key: 'responsable', label: 'Responsable' },
+      { key: 'created_at', label: 'Fecha Creación' },
     ],
-    filtros: ['lote', 'producto', 'materiaPrima'],
+    filtros: ['lote', 'producto', 'materiaprima', 'responsable'],
   },
   {
     key: 'control-pesado',
@@ -56,14 +80,15 @@ const sectores = [
     columns: [
       { key: 'id', label: 'ID' },
       { key: 'producto', label: 'Producto' },
-      { key: 'ingrediente', label: 'Ingrediente' },
-      { key: 'materiaPrima', label: 'Materia Prima' },
+      { key: 'materiaprima', label: 'Materia Prima' },
+      { key: 'lotemateriaprima', label: 'Lote Materia Prima' },
+      { key: 'peso', label: 'Peso' },
       { key: 'fecha', label: 'Fecha' },
-      { key: 'lote', label: 'Lote' },
-      { key: 'cantidad', label: 'Cantidad' },
       { key: 'observaciones', label: 'Observaciones' },
+      { key: 'responsable', label: 'Responsable' },
+      { key: 'created_at', label: 'Fecha Creación' },
     ],
-    filtros: ['lote', 'producto', 'materiaPrima'],
+    filtros: ['producto', 'materiaprima', 'fecha', 'responsable'],
   },
   {
     key: 'envasado',
@@ -71,14 +96,18 @@ const sectores = [
     endpoint: 'envasado',
     columns: [
       { key: 'id', label: 'ID' },
-      { key: 'loteProd', label: 'Lote Producción' },
-      { key: 'loteEnvasado', label: 'Lote Envasado' },
+      { key: 'loteprod', label: 'Lote Producción' },
+      { key: 'loteenvasado', label: 'Lote Envasado' },
       { key: 'producto', label: 'Producto' },
-      { key: 'cantEnvases', label: 'Cantidad Envases' },
-      { key: 'cantDescarte', label: 'Cantidad Descarte' },
+      { key: 'cantenvases', label: 'Cantidad Envases' },
+      { key: 'cantdescarte', label: 'Cantidad Descarte' },
+      { key: 'fechaingresopackaging', label: 'Fecha Ingreso Packaging' },
+      { key: 'fechaelaboracion', label: 'Fecha de Elaboración' },
       { key: 'observaciones', label: 'Observaciones' },
+      { key: 'responsable', label: 'Responsable' },
+      { key: 'created_at', label: 'Fecha Creación' },
     ],
-    filtros: ['loteProd', 'loteEnvasado', 'producto'],
+    filtros: ['loteprod', 'loteenvasado', 'producto', 'responsable'],
   },
   {
     key: 'expendio',
@@ -89,77 +118,111 @@ const sectores = [
       { key: 'producto', label: 'Producto' },
       { key: 'lote', label: 'Lote' },
       { key: 'destino', label: 'Destino' },
-      { key: 'tempTransporte', label: 'Temp. Transporte' },
-      { key: 'LimpTransporte', label: 'Limpieza Transporte' },
+      { key: 'temptransporte', label: 'Temp. Transporte' },
+      { 
+        key: 'limptransporte', 
+        label: 'Limpieza Transporte',
+        render: (value) => value === true ? 'Sí' : value === false ? 'No' : '-'
+      },
       { key: 'responsable', label: 'Responsable' },
+      { key: 'created_at', label: 'Fecha Creación' },
     ],
-    filtros: ['lote', 'producto', 'destino'],
+    filtros: ['lote', 'producto', 'destino', 'responsable'],
   },
 ];
 
-function getFiltrosIniciales(sector) {
-  const obj = {};
-  sector.filtros.forEach(f => obj[f] = '');
-  return obj;
-}
-
 const AdminPage = () => {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState(false);
-  const [sectorKey, setSectorKey] = useState('production');
-  const [registros, setRegistros] = useState([]);
-  const [filtros, setFiltros] = useState(getFiltrosIniciales(sectores.find(s => s.key === 'production')));
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showProductFilters, setShowProductFilters] = useState(false);
+  const [sectorKey, setSectorKey] = useState('recepcion');
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const toast = useToast();
+  const { user } = useAuth(); // Get current logged user
+  const cancelRef = useRef();
 
   const sector = sectores.find(s => s.key === sectorKey);
 
-  const handleAddUser = (userData) => {
-    if (userData.name && userData.email && userData.role && userData.password) {
-      setUsers([...users, { id: users.length + 1, ...userData }]);
-      setShowForm(false); // Ocultar formulario
-      setFormError(false); // Resetear el error
-    } else {
-      setFormError(true); // Mostrar error si faltan campos
+  // Cargar usuarios reales desde el backend
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await getUsers();
+        setUsers(data);
+      } catch (error) {
+        setUsers([]);
+        toast({
+          title: 'Error al cargar usuarios',
+          description: error.message,
+          status: 'error',
+          duration: 4000,
+          isClosable: true,
+        });
+      }
+    };
+    fetchUsers();
+  }, [toast]);
+
+  const handleAddUser = async (userData) => {
+    try {      const newUser = await createUser(userData);
+      setUsers((prev) => [...prev, newUser]);
+      setShowForm(false);
+      setFormError(false);
+      toast({
+        title: 'Usuario creado',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      setFormError(true);
+      toast({
+        title: 'Error al crear usuario',
+        description: error.message,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
     }
   };
 
-  const handleDeleteUser = (id) => {
-    setUsers(users.filter((user) => user.id !== id));
+  const handleDeleteUser = async (id) => {
+    try {
+      await deleteUser(id);
+      setUsers((prev) => prev.filter((user) => user.id !== id));
+      toast({
+        title: 'Usuario eliminado',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error al eliminar usuario',
+        description: error.message,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    }
   };
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/${sector.endpoint}`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setRegistros(data);
-        } else if (Array.isArray(data.data)) {
-          setRegistros(data.data);
-        } else {
-          setRegistros([]);
-        }
-      })
-      .catch(() => setRegistros([]));
-    setFiltros(getFiltrosIniciales(sector));
-  }, [sectorKey]);
-
-  const handleFiltroChange = (e) => {
-    setFiltros({ ...filtros, [e.target.name]: e.target.value });
+  const handleProductCreated = (message) => {
+    setSuccessMessage(message);
+    setIsSuccessDialogOpen(true);
+    setShowProductForm(false);
+    setRefreshKey(prev => prev + 1); // Recargar la tabla
   };
-
-  // Filtrado dinámico
-  const registrosFiltrados = Array.isArray(registros)
-    ? registros.filter(r =>
-        sector.filtros.every(f =>
-          !filtros[f] || (r[f] && r[f].toString().toLowerCase().includes(filtros[f].toLowerCase()))
-        )
-      )
-    : [];
 
   return (
-    <>
+    <Box minH="100vh" display="flex" flexDirection="column">
       <Header />
-      <Box p={{ base: 2, md: 8 }}>
+      <Box p={{ base: 2, md: 8 }} flex="1">
         <Heading as="h1" mb={6} fontSize={{ base: '2xl', md: '3xl' }}>
           Panel de Administración
         </Heading>
@@ -168,6 +231,7 @@ const AdminPage = () => {
           <TabList>
             <Tab fontSize={{ base: 'sm', md: 'md' }}>Gestión de Usuarios</Tab>
             <Tab fontSize={{ base: 'sm', md: 'md' }}>Gestión de Registros</Tab>
+            <Tab fontSize={{ base: 'sm', md: 'md' }}>Productos y Materias Primas</Tab>
           </TabList>
 
           <TabPanels>
@@ -177,7 +241,7 @@ const AdminPage = () => {
               </Heading>
 
               <Box overflowX="auto">
-                <UserTable users={users} onDelete={handleDeleteUser} />
+                <UserTable users={users} onDelete={handleDeleteUser} currentUser={user} />
               </Box>
 
               <Button onClick={() => setShowForm(!showForm)} colorScheme="orange" mt={4} w={{ base: 'full', md: 'auto' }}>
@@ -193,67 +257,124 @@ const AdminPage = () => {
               <Heading as="h2" size="lg" mb={4} fontSize={{ base: 'lg', md: 'xl' }}>
                 Gestión de Registros
               </Heading>
-              {/* Selector de sector y filtros */}
-              <Box mb={4} display="flex" flexDirection={{ base: 'column', md: 'row' }} alignItems={{ base: 'stretch', md: 'center' }} gap={2}>
-                <Box mb={{ base: 2, md: 0 }}>
-                  <label style={{ fontWeight: 600 }}>Sector:&nbsp;</label>
-                  <select value={sectorKey} onChange={e => setSectorKey(e.target.value)} style={{ padding: 4, borderRadius: 4 }}>
+              
+              {/* Selector de sector */}
+              <Box mb={6}>
+                <Heading as="h3" size="md" mb={3}>
+                  Sector: {sector?.label}
+                </Heading>
+                <VStack spacing={4} align="start">
+                  <Select
+                    value={sectorKey}
+                    onChange={(e) => setSectorKey(e.target.value)}
+                    maxW="300px"
+                    bg="white"
+                  >
                     {sectores.map(s => (
-                      <option key={s.key} value={s.key}>{s.label}</option>
+                      <option key={s.key} value={s.key}>
+                        {s.label}
+                      </option>
                     ))}
-                  </select>
-                </Box>
-                {/* Filtros dinámicos */}
-                <Box display="flex" flexWrap="wrap" gap={2} w="full">
-                  {sector.filtros.map(f => (
-                    <Box key={f} display="flex" alignItems="center" gap={1} mb={{ base: 2, md: 0 }}>
-                      <label style={{ fontWeight: 500 }}>{sector.columns.find(c => c.key === f)?.label || f}:&nbsp;</label>
-                      <input
-                        name={f}
-                        value={filtros[f] || ''}
-                        onChange={handleFiltroChange}
-                        placeholder={`Buscar ${sector.columns.find(c => c.key === f)?.label || f}`}
-                        style={{ padding: 4, borderRadius: 4, minWidth: 80 }}
-                      />
-                    </Box>
-                  ))}
-                </Box>
+                  </Select>
+                  
+                  <Button 
+                    onClick={() => setShowFilters(!showFilters)} 
+                    colorScheme="orange" 
+                    variant="outline"
+                    size="sm"
+                    leftIcon={showFilters ? <ViewOffIcon /> : <ViewIcon />}
+                  >
+                    Filtros
+                  </Button>
+                </VStack>
               </Box>
-              {/* Tabla dinámica */}
-              <Box overflowX="auto" w="full">
-                <table border="1" cellPadding="6" style={{ width: '100%', background: '#fff', borderCollapse: 'collapse', fontSize: 'clamp(12px, 2vw, 16px)' }}>
-                  <thead style={{ background: '#f7c873' }}>
-                    <tr>
-                      {sector.columns.map(col => (
-                        <th key={col.key} style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>{col.label}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {registrosFiltrados.length === 0 ? (
-                      <tr>
-                        <td colSpan={sector.columns.length} style={{ textAlign: 'center', color: '#888' }}>
-                          No hay registros para mostrar.
-                        </td>
-                      </tr>
-                    ) : (
-                      registrosFiltrados.map((registro, idx) => (
-                        <tr key={idx}>
-                          {sector.columns.map(col => (
-                            <td key={col.key} style={{ whiteSpace: 'nowrap' }}>{registro[col.key] ?? ''}</td>
-                          ))}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </Box>
+
+              {/* Tabla de registros con filtros */}
+              {sector && (
+                <RegistrosTable
+                  sector={sector.key}
+                  columns={sector.columns}
+                  filtros={sector.filtros}
+                  showFilters={showFilters}
+                />
+              )}
             </TabPanel>
+
+            <TabPanel>
+              <Heading as="h2" size="lg" mb={4} fontSize={{ base: 'lg', md: 'xl' }}>
+                Productos y Materias Primas
+              </Heading>
+
+              {/* Botón para mostrar/ocultar filtros */}
+              <Button 
+                onClick={() => setShowProductFilters(!showProductFilters)} 
+                colorScheme="orange" 
+                variant="outline"
+                size="sm"
+                mb={4}
+                leftIcon={showProductFilters ? <ViewOffIcon /> : <ViewIcon />}
+              >
+                Filtros
+              </Button>
+
+              {/* Tabla de productos con materias primas */}
+              <ProductoMateriaPrimaTable refreshKey={refreshKey} showFilters={showProductFilters} />
+
+              <Button
+                onClick={() => setShowProductForm(!showProductForm)}
+                colorScheme="orange"
+                mt={4}
+                w={{ base: 'full', md: 'auto' }}
+              >
+                {showProductForm ? 'Cancelar' : 'Crear Producto con Materias Primas'}
+              </Button>
+
+              <Collapse in={showProductForm} animateOpacity>
+                <ProductoMateriaPrimaForm 
+                  onSubmit={handleProductCreated} 
+                  onCancel={() => setShowProductForm(false)} 
+                  formError={formError} 
+                />
+              </Collapse>
+            </TabPanel>
+
           </TabPanels>
         </Tabs>
       </Box>
+
+      {/* Dialog de confirmación de éxito */}
+      <AlertDialog
+        isOpen={isSuccessDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsSuccessDialogOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="green.600">
+              ¡Producto Creado Exitosamente!
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              {successMessage}
+              <br /><br />
+              El producto ha sido creado y agregado a la base de datos. Puedes verlo en la tabla de productos.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button 
+                ref={cancelRef} 
+                onClick={() => setIsSuccessDialogOpen(false)}
+                colorScheme="green"
+              >
+                Continuar
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
       <Footer />
-    </>
+    </Box>
   );
 };
 

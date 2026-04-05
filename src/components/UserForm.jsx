@@ -11,7 +11,7 @@ import {
 } from '@chakra-ui/react';
 
 const UserForm = ({ onSubmit, formError }) => {
-  const [formData, setFormData] = useState({ name: '', lastName: '', email: '', role: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', email: '', role: '', password: '' });
   const [showError, setShowError] = useState(false);
 
   // Efecto para manejar el borrado del error después de 5 segundos
@@ -28,9 +28,9 @@ const UserForm = ({ onSubmit, formError }) => {
   }, [formError]); // Ejecutar el efecto cuando formError cambie
 
   const handleSubmit = () => {
-    if (formData.name && formData.lastName && formData.email && formData.role && formData.password) {
+    if (formData.username && formData.email && formData.role && formData.password) {
       onSubmit(formData);
-      setFormData({ name: '', lastName:'', email: '', role: '', password: '' });
+      setFormData({ username: '', email: '', role: '', password: '' });
       setShowError(false); // Asegúrate de ocultar el error si el formulario se envía correctamente
     } else {
       setShowError(true); // Asegúrate de mostrar el error si hay campos faltantes
@@ -40,29 +40,21 @@ const UserForm = ({ onSubmit, formError }) => {
   return (
     <Box p={{ base: 2, md: 4 }} mt={4} rounded="md" shadow="md" bg="gray.50" borderWidth="1px" w="full">
       <VStack spacing={4} align="stretch">
-        <FormControl id="name" isRequired>
-          <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Nombre</FormLabel>
+        <FormControl id="username" isRequired>
+          <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Nombre de Usuario</FormLabel>
           <Input
+            name="username"
             type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Nombre del usuario"
-            fontSize={{ base: 'sm', md: 'md' }}
-          />
-        </FormControl>
-       <FormControl id='apellido' isRequired> 
-        <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Apellido</FormLabel>
-          <Input
-            type="text"
-            value={formData.lastName}
-            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-            placeholder="Apellido del usuario"
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            placeholder="Nombre de usuario"
             fontSize={{ base: 'sm', md: 'md' }}
           />
         </FormControl>
         <FormControl id="email" isRequired>
           <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Email</FormLabel>
           <Input
+            name="email"
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -74,6 +66,7 @@ const UserForm = ({ onSubmit, formError }) => {
         <FormControl id="password" isRequired>
           <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Contraseña</FormLabel>
           <Input
+            name="password"
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -83,15 +76,16 @@ const UserForm = ({ onSubmit, formError }) => {
         </FormControl>
 
         <FormControl id="role" isRequired>
-          <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Role</FormLabel>
+          <FormLabel fontSize={{ base: 'sm', md: 'md' }}>Rol</FormLabel>
           <Select
+            name="role"
             placeholder="Seleccionar rol"
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             fontSize={{ base: 'sm', md: 'md' }}
           >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
+            <option value="user">Usuario</option>
+            <option value="admin">Administrador</option>
           </Select>
         </FormControl>
 
