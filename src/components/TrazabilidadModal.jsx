@@ -40,7 +40,7 @@ import {
   Image,
 } from '@chakra-ui/react';
 import { SearchIcon, CloseIcon, ViewIcon } from '@chakra-ui/icons';
-import { getTrazabilidadByLote } from '../config/api';
+import { getTrazabilidadByLote, API_BASE_URL } from '../config/api';
 import logo from '../images/logo.png';
 
 // ============================================================================
@@ -139,8 +139,7 @@ const TrazabilidadModal = ({ isOpen, onClose, registroId, tipoTabla }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const API_BASE_URL = 'http://localhost:5000/api';
-      
+
       const apiEndpoints = {
         'production': '/production',
         'control-pesado': '/control-pesado',

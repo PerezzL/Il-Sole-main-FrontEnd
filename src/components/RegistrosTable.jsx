@@ -85,7 +85,7 @@ const RegistrosTable = ({ sector, columns, filtros, showFilters = true }) => {
         setRegistros(Array.isArray(data) ? data : []);
       } catch (error) {        toast({
           title: 'Error al cargar registros',
-          description: `Error: ${error.message}. Verifica que el backend esté corriendo en http://localhost:5000`,
+          description: `Error: ${error.message}. En producción revisá VITE_API_URL en Vercel y CORS en el backend.`,
           status: 'error',
           duration: 6000,
           isClosable: true,

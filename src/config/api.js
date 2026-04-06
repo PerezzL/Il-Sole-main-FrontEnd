@@ -1,9 +1,12 @@
 import { useState } from 'react';
 
 const rawBase = import.meta.env.VITE_API_URL;
-const API_BASE_URL = rawBase
+/** Misma URL que el front + `/api` en Vercel; o `VITE_API_URL` explícita; en dev, localhost:5000. */
+export const API_BASE_URL = rawBase
   ? `${String(rawBase).replace(/\/$/, '')}/api`
-  : 'http://localhost:5000/api';
+  : import.meta.env.DEV
+    ? 'http://localhost:5000/api'
+    : '/api';
 
 export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
